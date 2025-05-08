@@ -1,6 +1,8 @@
+
 'use client'
 
-import { useFormState, useFormStatus } from "react-dom";
+import { useActionState } from "react"; // Changed from "react-dom"
+import { useFormStatus } from "react-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -33,7 +35,7 @@ function SubmitButton() {
 }
 
 export default function HomePage() {
-  const [state, formAction] = useFormState(fetchWordData, initialState);
+  const [state, formAction] = useActionState(fetchWordData, initialState); // Changed from useFormState
 
   return (
     <div className="min-h-screen flex flex-col items-center bg-background text-foreground p-4 md:p-8 selection:bg-primary/20 selection:text-primary">
@@ -105,3 +107,4 @@ export default function HomePage() {
     </div>
   );
 }
+
