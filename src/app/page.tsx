@@ -1,4 +1,5 @@
 
+
 'use client'
 
 import React, { useActionState } from "react"; 
@@ -12,6 +13,7 @@ import { WordResults } from "@/components/word-results";
 import { fetchWordData, fetchWordSuggestion, SearchResultState } from "./actions";
 import { BookText, Search, AlertCircle, Info, Loader2, MessageSquareQuote, Sparkles, ChevronDown } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 
 
 const initialState: SearchResultState = {
