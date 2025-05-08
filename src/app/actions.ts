@@ -15,6 +15,7 @@ export interface SearchResultState {
   message?: string; 
   
   contextProvided?: string;
+  selectedTone?: string;
   suggestedWord?: string;
   suggestionType?: 'synonym' | 'antonym' | 'none';
   suggestionExplanation?: string;
@@ -23,6 +24,7 @@ export interface SearchResultState {
 
 const WordSchema = z.string().min(1, "Word cannot be empty.").max(50, "Word is too long.");
 const ContextSchema = z.string().min(5, "Context should be at least 5 characters long.").max(500, "Context is too long, please keep it under 500 characters.");
+const ToneSchema = z.string().optional();
 
 export async function fetchWordData(
   prevState: SearchResultState, // Not directly used for return structure, but part of useActionState signature
@@ -81,6 +83,7 @@ export async function fetchWordSuggestion(
 ): Promise<SearchResultState> {
   const context = formData.get("context") as string;
   const originalWord = formData.get("originalWord") as string;
+  const tone = formData.get("tone") as string;
   
   const validatedContext = ContextSchema.safeParse(context);
   if (!validatedContext.success) {
@@ -89,8 +92,18 @@ export async function fetchWordSuggestion(
       suggestionError: validatedContext.error.errors.map((e) => e.message).join(", "),
     };
   }
+  const validatedTone = ToneSchema.safeParse(tone);
+  if (!validatedTone.success) {
+    return {
+      ...prevState,
+      suggestionError: "Invalid tone selected.",
+    };
+  }
+
 
   const sanitizedContext = validatedContext.data;
+  const sanitizedTone = validatedTone.data || "Conversational";
+
 
   if (!prevState.searchWord || !prevState.synonyms || !prevState.antonyms) {
     return {
@@ -111,6 +124,7 @@ export async function fetchWordSuggestion(
     context: sanitizedContext,
     synonyms: prevState.synonyms,
     antonyms: prevState.antonyms,
+    tone: sanitizedTone,
   };
 
   try {
@@ -118,6 +132,7 @@ export async function fetchWordSuggestion(
     return {
       ...prevState,
       contextProvided: sanitizedContext,
+      selectedTone: sanitizedTone,
       suggestedWord: suggestionResult.suggestedWord,
       suggestionType: suggestionResult.suggestionType,
       suggestionExplanation: suggestionResult.explanation,
@@ -129,6 +144,7 @@ export async function fetchWordSuggestion(
     return {
       ...prevState,
       contextProvided: sanitizedContext, 
+      selectedTone: sanitizedTone,
       suggestionError: `Failed to fetch suggestion. Reason: ${errorMessage}`,
     };
   }

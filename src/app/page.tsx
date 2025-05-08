@@ -1,7 +1,7 @@
 
 'use client'
 
-import { useActionState } from "react"; 
+import React, { useActionState } from "react"; 
 import { useFormStatus } from "react-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { WordResults } from "@/components/word-results";
 import { fetchWordData, fetchWordSuggestion, SearchResultState } from "./actions";
-import { BookText, Search, AlertCircle, Info, Loader2, MessageSquareQuote, Sparkles } from "lucide-react";
+import { BookText, Search, AlertCircle, Info, Loader2, MessageSquareQuote, Sparkles, ChevronDown } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
 
 const initialState: SearchResultState = {
   synonyms: [],
@@ -19,6 +21,7 @@ const initialState: SearchResultState = {
   error: undefined,
   message: undefined,
   contextProvided: undefined,
+  selectedTone: "Conversational",
   suggestedWord: undefined,
   suggestionType: undefined,
   suggestionExplanation: undefined,
@@ -71,9 +74,11 @@ export default function HomePage() {
       
       if (actionType === 'fetchWordData') {
         const nextSearchState = await fetchWordData(prevState, formData);
+        // Reset suggestion related fields on new word search
         return {
           ...nextSearchState, 
           contextProvided: undefined,
+          selectedTone: "Conversational", // Reset tone to default
           suggestedWord: undefined,
           suggestionType: undefined,
           suggestionExplanation: undefined,
@@ -86,6 +91,15 @@ export default function HomePage() {
     },
     initialState
   );
+  
+  // Local state for tone select as formAction doesn't update it until submission
+  const [selectedToneForSelect, setSelectedToneForSelect] = React.useState<string>(state.selectedTone || "Conversational");
+
+  React.useEffect(() => {
+    // Sync local tone state if global state changes (e.g. after form submission)
+    setSelectedToneForSelect(state.selectedTone || "Conversational");
+  }, [state.selectedTone]);
+
 
   const showSuggestionSection = state.searchWord && (state.synonyms && state.synonyms.length > 0 || state.antonyms && state.antonyms.length > 0) && !state.error;
 
@@ -150,7 +164,7 @@ export default function HomePage() {
               </h3>
             </div>
             <p className="text-muted-foreground mb-4">
-              Provide some context for how you intend to use "{state.searchWord}", and we'll suggest the best fit from its synonyms or antonyms.
+              Provide some context for how you intend to use "{state.searchWord}", select a tone, and we'll suggest the best fit from its synonyms or antonyms.
             </p>
             
             <form action={dispatchFormAction} className="space-y-4">
@@ -163,8 +177,28 @@ export default function HomePage() {
                 aria-label="Context for word usage"
                 defaultValue={state.contextProvided || ""}
               />
-              <input type="hidden" name="originalWord" value={state.searchWord!} />
-              <SuggestionSubmitButton />
+              <div className="flex flex-col sm:flex-row gap-4 items-center">
+                <div className="w-full sm:w-auto">
+                  <Label htmlFor="tone-select" className="mb-2 block text-sm font-medium text-foreground">Desired Tone:</Label>
+                  <Select name="tone" value={selectedToneForSelect} onValueChange={setSelectedToneForSelect}>
+                    <SelectTrigger id="tone-select" className="w-full sm:w-[200px]">
+                      <SelectValue placeholder="Select Tone" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Conversational">Conversational</SelectItem>
+                      <SelectItem value="Formal">Formal</SelectItem>
+                      <SelectItem value="Poetic">Poetic</SelectItem>
+                      <SelectItem value="Technical">Technical</SelectItem>
+                      <SelectItem value="Humorous">Humorous</SelectItem>
+                      <SelectItem value="Concise">Concise</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                 <input type="hidden" name="originalWord" value={state.searchWord!} />
+                <div className="w-full sm:w-auto sm:mt-auto"> 
+                  <SuggestionSubmitButton />
+                </div>
+              </div>
             </form>
 
             {state?.suggestionError && (
@@ -184,8 +218,15 @@ export default function HomePage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
+                  {state.searchWord && state.suggestedWord.length > state.searchWord.length && (
+                  <Alert variant="default" className="mb-4 border-yellow-500 text-yellow-700 [&>svg]:text-yellow-500">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle className="text-yellow-700">Clarity Note</AlertTitle>
+                    <AlertDescription className="text-yellow-600">The suggested word is longer than the original. Consider if its added nuance is worth the extra length for your specific use case.</AlertDescription>
+                  </Alert>
+                 )}
                   <p className="text-lg">
-                    For the context you provided, consider using: <strong className="text-primary">{state.suggestedWord}</strong> ({state.suggestionType}).
+                    For the context you provided (Tone: {state.selectedTone || "Conversational"}), consider using: <strong className="text-primary">{state.suggestedWord}</strong> ({state.suggestionType}).
                   </p>
                   <div>
                     <h4 className="font-semibold mb-1">Reasoning:</h4>
@@ -198,7 +239,7 @@ export default function HomePage() {
               <Alert variant="default" className="mt-6 bg-background">
                 <Info className="h-4 w-4" />
                 <AlertTitle>Suggestion Result</AlertTitle>
-                <AlertDescription>{state.suggestionExplanation}</AlertDescription>
+                <AlertDescription>{state.suggestionExplanation} (Tone considered: {state.selectedTone || "Conversational"})</AlertDescription>
               </Alert>
             )}
           </section>
