@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState } from 'react';
@@ -21,21 +20,25 @@ export function ApiKeyGate({ onKeySaved }: ApiKeyGateProps) {
       setError('API Key cannot be empty.');
       return;
     }
+    if (apiKey.length < 10 || apiKey.length > 100) { // Basic length check
+        setError('API Key seems invalid. Please check the key and try again.');
+        return;
+    }
     localStorage.setItem('wordcraftApiKeyV1', apiKey);
     setError('');
     onKeySaved();
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-background text-foreground p-4 md:p-8 selection:bg-primary/20 selection:text-primary">
+    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm p-4 md:p-8 selection:bg-primary/20 selection:text-primary">
       <Card className="w-full max-w-lg shadow-xl">
         <CardHeader>
           <div className="flex items-center gap-3 mb-2">
             <KeyRound className="h-8 w-8 text-primary" />
-            <CardTitle className="text-2xl md:text-3xl">Welcome to Wordcraft Lexica!</CardTitle>
+            <CardTitle className="text-2xl md:text-3xl">API Key Required</CardTitle>
           </div>
           <CardDescription className="text-md">
-            To get started, please provide your Google AI Studio API key.
+            Please provide your Google AI Studio API key to use Wordcraft Lexica.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -50,8 +53,9 @@ export function ApiKeyGate({ onKeySaved }: ApiKeyGateProps) {
               onChange={(e) => setApiKey(e.target.value)}
               placeholder="Enter your API key"
               className="text-base h-11"
+              aria-describedby="apiKeyError"
             />
-            {error && <p className="text-sm text-destructive mt-1">{error}</p>}
+            {error && <p id="apiKeyError" className="text-sm text-destructive mt-1">{error}</p>}
           </div>
 
           <Alert variant="default" className="bg-secondary/30">
@@ -75,13 +79,13 @@ export function ApiKeyGate({ onKeySaved }: ApiKeyGateProps) {
                 <li>Click on "Get API key" (usually in the top left or under a menu).</li>
                 <li>Click "Create API key in new project" or select an existing project.</li>
                 <li>Copy the generated API key.</li>
-                <li>Paste it into the field above.</li>
+                <li>Paste it into the field above. Your key is stored only in your browser&apos;s local storage.</li>
               </ol>
               <p className="mt-3 font-semibold text-foreground">
-                Important for Deployment:
+                Important for Local Development & Genkit CLI:
               </p>
               <p className="text-xs text-muted-foreground mt-1">
-                For the application to work correctly when deployed (e.g., on Vercel), you also need to set this API key as an environment variable named <code className="bg-muted px-1 py-0.5 rounded-sm text-xs">GOOGLE_API_KEY</code> in your hosting provider's project settings. For local development, you can add it to a <code className="bg-muted px-1 py-0.5 rounded-sm text-xs">.env.local</code> file at the root of your project (<code className="bg-muted px-1 py-0.5 rounded-sm text-xs">GOOGLE_API_KEY=your_key_here</code>).
+                If you are developing locally or want to use Genkit CLI tools (like `genkit start`), you should also create a file named <code className="bg-muted px-1 py-0.5 rounded-sm text-xs">.env</code> (or <code className="bg-muted px-1 py-0.5 rounded-sm text-xs">.env.local</code>) at the root of your project and add your API key like this: <code className="bg-muted px-1 py-0.5 rounded-sm text-xs">GOOGLE_API_KEY=your_actual_api_key_here</code>. This is separate from the key you enter in this dialog, which is for app usage in the browser.
               </p>
             </AlertDescription>
           </Alert>
@@ -92,9 +96,6 @@ export function ApiKeyGate({ onKeySaved }: ApiKeyGateProps) {
           </Button>
         </CardFooter>
       </Card>
-      <footer className="w-full max-w-3xl mt-10 text-center text-muted-foreground text-xs">
-        <p>&copy; {new Date().getFullYear()} Wordcraft Lexica. Powered by Generative AI.</p>
-      </footer>
     </div>
   );
 }

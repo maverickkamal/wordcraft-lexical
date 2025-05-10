@@ -1,4 +1,3 @@
-
 'use client'
 
 import React, { useActionState, useState, useEffect } from "react"; 
@@ -70,18 +69,26 @@ function SuggestionSubmitButton() {
 
 
 export default function HomePage() {
-  const [apiKeyReady, setApiKeyReady] = useState(false);
-
-  useEffect(() => {
-    const storedKey = localStorage.getItem("wordcraftApiKeyV1");
-    if (storedKey) {
-      setApiKeyReady(true);
-    }
-  }, []);
-
-  const [state, dispatchFormAction] = useActionState(
-    async (prevState: SearchResultState, formData: FormData) => {
+  const [showApiKeyModal, setShowApiKeyModal] = useState(false);
+  const [pendingFormData, setPendingFormData] = useState<FormData | null>(null);
+  
+  const [state, formAction] = useActionState(
+    async (prevState: SearchResultState, formData: FormData): Promise<SearchResultState> => {
       const actionType = formData.get('actionType');
+      let apiKey = localStorage.getItem("wordcraftApiKeyV1");
+
+      if (actionType === 'fetchWordData' || actionType === 'fetchWordSuggestion') {
+        if (!apiKey) {
+          setPendingFormData(formData);
+          setShowApiKeyModal(true);
+          // Clear previous results if API key is missing now
+          return { 
+            ...initialState, // Reset to initial state
+            error: "API Key required. Please enter your Google AI Studio API Key to proceed." 
+          };
+        }
+        formData.set("apiKey", apiKey); // Ensure API key is on the FormData for the action
+      }
       
       if (actionType === 'fetchWordData') {
         const nextSearchState = await fetchWordData(prevState, formData);
@@ -109,15 +116,24 @@ export default function HomePage() {
     setSelectedToneForSelect(state.selectedTone || "Conversational");
   }, [state.selectedTone]);
 
+  const handleApiKeySaved = async () => {
+    setShowApiKeyModal(false);
+    if (pendingFormData) {
+      const currentApiKey = localStorage.getItem("wordcraftApiKeyV1");
+      if (currentApiKey) {
+        pendingFormData.set("apiKey", currentApiKey);
+        await formAction(pendingFormData); // Re-trigger the stored action
+      }
+      setPendingFormData(null);
+    }
+  };
 
   const showSuggestionSection = state.searchWord && (state.synonyms && state.synonyms.length > 0 || state.antonyms && state.antonyms.length > 0) && !state.error;
 
-  if (!apiKeyReady) {
-    return <ApiKeyGate onKeySaved={() => setApiKeyReady(true)} />;
-  }
-
   return (
     <div className="min-h-screen flex flex-col items-center bg-background text-foreground p-4 md:p-8 selection:bg-primary/20 selection:text-primary">
+      {showApiKeyModal && <ApiKeyGate onKeySaved={handleApiKeySaved} />}
+
       <header className="w-full max-w-3xl mb-8 md:mb-12 text-center">
         <div className="flex items-center justify-center gap-2 mb-2">
           <BookText className="h-10 w-10 text-primary" />
@@ -131,7 +147,7 @@ export default function HomePage() {
       </header>
 
       <main className="w-full max-w-3xl">
-        <form action={dispatchFormAction} className="flex flex-col sm:flex-row items-center gap-3 mb-8 p-4 sm:p-6 bg-card rounded-lg shadow-md">
+        <form action={formAction} className="flex flex-col sm:flex-row items-center gap-3 mb-8 p-4 sm:p-6 bg-card rounded-lg shadow-md">
           <Input
             type="text"
             name="word"
@@ -179,7 +195,7 @@ export default function HomePage() {
               Provide some context for how you intend to use "{state.searchWord}", select a tone, and we'll suggest the best fit from its synonyms or antonyms.
             </p>
             
-            <form action={dispatchFormAction} className="space-y-4">
+            <form action={formAction} className="space-y-4">
               <Textarea
                 name="context"
                 placeholder="e.g., 'She felt ___ after receiving the good news.'"
@@ -231,10 +247,10 @@ export default function HomePage() {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {state.searchWord && state.suggestedWord.length > state.searchWord.length && (
-                  <Alert variant="default" className="mb-4 border-yellow-500 text-yellow-700 [&>svg]:text-yellow-500">
+                  <Alert variant="default" className="mb-4 border-yellow-500 text-yellow-700 [&>svg]:text-yellow-500 dark:border-yellow-400 dark:text-yellow-300 dark:[&>svg]:text-yellow-400">
                     <AlertCircle className="h-4 w-4" />
-                    <AlertTitle className="text-yellow-700">Clarity Note</AlertTitle>
-                    <AlertDescription className="text-yellow-600">The suggested word is longer than the original. Consider if its added nuance is worth the extra length for your specific use case.</AlertDescription>
+                    <AlertTitle className="text-yellow-700 dark:text-yellow-300">Clarity Note</AlertTitle>
+                    <AlertDescription className="text-yellow-600 dark:text-yellow-200">The suggested word is longer than the original. Consider if its added nuance is worth the extra length for your specific use case.</AlertDescription>
                   </Alert>
                  )}
                   <p className="text-lg">
@@ -276,3 +292,4 @@ export default function HomePage() {
     </div>
   );
 }
+

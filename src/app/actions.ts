@@ -1,10 +1,12 @@
-// @ts-nocheck
-// TODO: Remove @ts-nocheck and fix errors
 "use server";
 
-import { generateSynonyms, GenerateSynonymsInput } from "@/ai/flows/generate-synonyms";
-import { generateAntonyms, GenerateAntonymsInput } from "@/ai/flows/generate-antonyms";
-import { suggestBestWord, SuggestBestWordInput } from "@/ai/flows/suggest-best-word";
+import type { GenerateSynonymsInput } from "@/ai/flows/generate-synonyms";
+import { generateSynonyms } from "@/ai/flows/generate-synonyms";
+import type { GenerateAntonymsInput } from "@/ai/flows/generate-antonyms";
+import { generateAntonyms } from "@/ai/flows/generate-antonyms";
+import type { SuggestBestWordInput } from "@/ai/flows/suggest-best-word";
+import { suggestBestWord } from "@/ai/flows/suggest-best-word";
+
 import { z } from "zod";
 
 export interface SearchResultState {
@@ -25,12 +27,14 @@ export interface SearchResultState {
 const WordSchema = z.string().min(1, "Word cannot be empty.").max(50, "Word is too long.");
 const ContextSchema = z.string().min(5, "Context should be at least 5 characters long.").max(500, "Context is too long, please keep it under 500 characters.");
 const ToneSchema = z.string().optional();
+const ApiKeySchema = z.string().min(10, "API Key seems too short.").max(100, "API Key seems too long."); // Basic validation for API key presence and general form
 
 export async function fetchWordData(
-  prevState: SearchResultState, // Not directly used for return structure, but part of useActionState signature
+  prevState: SearchResultState,
   formData: FormData
 ): Promise<SearchResultState> {
   const word = formData.get("word") as string;
+  const apiKey = formData.get("apiKey") as string | null;
 
   const validatedWord = WordSchema.safeParse(word);
   if (!validatedWord.success) {
@@ -38,16 +42,26 @@ export async function fetchWordData(
       error: validatedWord.error.errors.map((e) => e.message).join(", "),
     };
   }
-
   const sanitizedWord = validatedWord.data;
+
+  const validatedApiKey = ApiKeySchema.safeParse(apiKey);
+  if (!validatedApiKey.success) {
+    return {
+      searchWord: sanitizedWord,
+      error: "A valid API Key is required. " + validatedApiKey.error.errors.map((e) => e.message).join(", "),
+    };
+  }
+  const sanitizedApiKey = validatedApiKey.data;
+
 
   try {
     const synonymInput: GenerateSynonymsInput = { word: sanitizedWord };
     const antonymInput: GenerateAntonymsInput = { word: sanitizedWord };
 
+    // Pass the API key to the AI flow functions
     const [synonymResult, antonymResult] = await Promise.all([
-      generateSynonyms(synonymInput),
-      generateAntonyms(antonymInput),
+      generateSynonyms(synonymInput, sanitizedApiKey),
+      generateAntonyms(antonymInput, sanitizedApiKey),
     ]);
     
     const synonyms = synonymResult?.synonyms || [];
@@ -84,6 +98,7 @@ export async function fetchWordSuggestion(
   const context = formData.get("context") as string;
   const originalWord = formData.get("originalWord") as string;
   const tone = formData.get("tone") as string;
+  const apiKey = formData.get("apiKey") as string | null;
   
   const validatedContext = ContextSchema.safeParse(context);
   if (!validatedContext.success) {
@@ -99,6 +114,15 @@ export async function fetchWordSuggestion(
       suggestionError: "Invalid tone selected.",
     };
   }
+
+  const validatedApiKey = ApiKeySchema.safeParse(apiKey);
+  if (!validatedApiKey.success) {
+    return {
+      ...prevState,
+      suggestionError: "A valid API Key is required for suggestions. " + validatedApiKey.error.errors.map((e) => e.message).join(", "),
+    };
+  }
+  const sanitizedApiKey = validatedApiKey.data;
 
 
   const sanitizedContext = validatedContext.data;
@@ -128,7 +152,8 @@ export async function fetchWordSuggestion(
   };
 
   try {
-    const suggestionResult = await suggestBestWord(input);
+    // Pass the API key to the AI flow function
+    const suggestionResult = await suggestBestWord(input, sanitizedApiKey);
     return {
       ...prevState,
       contextProvided: sanitizedContext,
@@ -149,3 +174,4 @@ export async function fetchWordSuggestion(
     };
   }
 }
+
