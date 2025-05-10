@@ -1,0 +1,35 @@
+{
+  "name": "Wordcraft Lexica",
+  "short_name": "Wordcraft",
+  "description": "A thesaurus app for writers, built with Next.js and GenAI.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F5F5F5",
+  "theme_color": "#008080",
+  "icons": [
+    {
+      "src": "https://picsum.photos/192/192",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "https://picsum.photos/512/512",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "https://picsum.photos/192/192",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "https://picsum.photos/512/512",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
