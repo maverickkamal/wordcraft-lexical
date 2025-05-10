@@ -1,8 +1,7 @@
 
-
 'use client'
 
-import React, { useActionState } from "react"; 
+import React, { useActionState, useState, useEffect } from "react"; 
 import { useFormStatus } from "react-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -11,9 +10,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { WordResults } from "@/components/word-results";
 import { fetchWordData, fetchWordSuggestion, SearchResultState } from "./actions";
-import { BookText, Search, AlertCircle, Info, Loader2, MessageSquareQuote, Sparkles, ChevronDown } from "lucide-react";
+import { BookText, Search, AlertCircle, Info, Loader2, MessageSquareQuote, Sparkles } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { ApiKeyGate } from "@/components/api-key-gate";
 
 
 const initialState: SearchResultState = {
@@ -70,6 +70,15 @@ function SuggestionSubmitButton() {
 
 
 export default function HomePage() {
+  const [apiKeyReady, setApiKeyReady] = useState(false);
+
+  useEffect(() => {
+    const storedKey = localStorage.getItem("wordcraftApiKeyV1");
+    if (storedKey) {
+      setApiKeyReady(true);
+    }
+  }, []);
+
   const [state, dispatchFormAction] = useActionState(
     async (prevState: SearchResultState, formData: FormData) => {
       const actionType = formData.get('actionType');
@@ -94,16 +103,18 @@ export default function HomePage() {
     initialState
   );
   
-  // Local state for tone select as formAction doesn't update it until submission
   const [selectedToneForSelect, setSelectedToneForSelect] = React.useState<string>(state.selectedTone || "Conversational");
 
   React.useEffect(() => {
-    // Sync local tone state if global state changes (e.g. after form submission)
     setSelectedToneForSelect(state.selectedTone || "Conversational");
   }, [state.selectedTone]);
 
 
   const showSuggestionSection = state.searchWord && (state.synonyms && state.synonyms.length > 0 || state.antonyms && state.antonyms.length > 0) && !state.error;
+
+  if (!apiKeyReady) {
+    return <ApiKeyGate onKeySaved={() => setApiKeyReady(true)} />;
+  }
 
   return (
     <div className="min-h-screen flex flex-col items-center bg-background text-foreground p-4 md:p-8 selection:bg-primary/20 selection:text-primary">
@@ -128,7 +139,6 @@ export default function HomePage() {
             required
             className="flex-grow text-base h-12"
             aria-label="Word to search"
-            // defaultValue={state.searchWord || ""} // Retains input on error, could be "" if preferred
           />
           <WordSearchSubmitButton />
         </form>
@@ -266,4 +276,3 @@ export default function HomePage() {
     </div>
   );
 }
-
