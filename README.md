@@ -1,5 +1,8 @@
 # Wordcraft Lexica
 
+<img width="1276" height="780" alt="image" src="https://github.com/user-attachments/assets/48c5d532-f85b-4cee-a962-5211a9af5035" />
+
+
 Wordcraft Lexica is a Progressive Web App (PWA) thesaurus designed for writers, built with Next.js, Genkit, and Google's Generative AI. It helps you find the perfect words by providing synonyms, antonyms, and context-aware suggestions to enhance your writing while preserving your unique voice.
 
 ## Features
